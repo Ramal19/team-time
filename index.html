@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="az">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamSync Ultimate PRO | 6-Day Edition</title>
+
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.5);
+            --accent: #f59e0b;
+            --success: #10b981;
+            --bg: #0b0f1a;
+            --card-bg: rgba(23, 32, 53, 0.8);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(245, 158, 11, 0.08) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            width: 100%;
+            max-width: 1000px;
+            border-radius: 28px;
+            padding: 35px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            margin-top: 20px;
+        }
+
+        /* Login */
+        #login-screen {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .logo-large {
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .input-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 14px 20px;
+            border-radius: 14px;
+            color: white;
+            width: 100%;
+            max-width: 320px;
+            outline: none;
+            margin: 15px 0;
+            transition: 0.3s;
+        }
+
+        .input-box:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        /* App Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Grid */
+        .scheduler {
+            display: grid;
+            grid-template-columns: 70px repeat(6, 1fr);
+            /* 6 gün + saat sütunu */
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .cell {
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .header-cell {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            font-size: 13px;
+            cursor: default;
+        }
+
+        /* Heatmap levels */
+        .v1 {
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+        }
+
+        .v2 {
+            background: rgba(99, 102, 241, 0.35);
+            color: #a5b4fc;
+        }
+
+        .v3 {
+            background: rgba(99, 102, 241, 0.6);
+            color: #e0e7ff;
+        }
+
+        .v-max {
+            background: var(--success) !important;
+            color: white !important;
+            font-weight: 800;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+            border: none;
+        }
+
+        .selected {
+            border: 2.5px solid var(--accent) !important;
+            transform: scale(0.98);
+        }
+
+        /* Controls */
+        .btn {
+            padding: 14px 28px;
+            border-radius: 14px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            box-shadow: 0 10px 20px -5px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .suggestion-bar {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .participants {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 12px;
+            margin: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        @media (max-width: 768px) {
+            .scheduler {
+                grid-template-columns: 45px repeat(6, 1fr);
+                gap: 4px;
+            }
+
+            .cell {
+                height: 35px;
+                font-size: 7px;
+                border-radius: 4px;
+            }
+
+            .container {
+                padding: 15px;
+                border-radius: 0;
+                margin-top: 0;
+            }
+
+            .header-cell {
+                font-size: 9px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div id="login-screen">
+            <div class="logo-large">CODEBYTE</div>
+            <p style="color: var(--text-dim)">Komanda vaxtlarını sinxronlaşdırın</p>
+            <input type="text" id="username" class="input-box" placeholder="Adınızı bura yazın...">
+            <br>
+            <button class="btn btn-primary" style="max-width: 320px;" onclick="startApp()">İndi Başla</button>
+        </div>
+
+        <div id="app-screen" style="display: none;">
+            <div class="header">
+                <div style="font-weight: 800; font-size: 18px; color: var(--primary)">CODEBYTE</div>
+                <div id="user-display" class="user-info"></div>
+            </div>
+
+            <div id="best-time" class="suggestion-bar">Hesablanır...</div>
+
+            <div class="scheduler" id="grid"></div>
+
+            <button class="btn btn-primary" onclick="pushToFirebase()">Seçdiyim Vaxtları Təsdiqlə</button>
+
+            <div class="participants">
+                <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 10px;">Səs verən komanda üzvləri:</p>
+                <div id="user-badges"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---------------------------------------------------------
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDjL5wc1DMgTbYAp4370hIoTy6IWyWUqk",
+            databaseURL: "https://team-time-6e775-default-rtdb.firebaseio.com/",
+            projectId: "team-time-6e775",
+        };
+        // ---------------------------------------------------------
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let user = "";
+        let selections = [];
+        let dbData = {};
+
+        const days = ["B.e", "Ç.a", "Çər", "C.a", "Cüm", "Şən"];
+        const hours = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
+
+        function startApp() {
+            const input = document.getElementById('username');
+            if (!input.value.trim()) return alert("Ad mütləqdir!");
+            user = input.value.trim();
+
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'block';
+            document.getElementById('user-display').innerText = "👤 " + user;
+
+            loadRealtime();
+        }
+
+        function render() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '<div></div>'; 
+
+            days.forEach(d => grid.innerHTML += `<div class="cell header-cell">${d}</div>`);
+
+            const totalUsers = Object.keys(dbData).length;
+            let best = { slot: "", count: 0 };
+
+            hours.forEach(h => {
+                grid.innerHTML += `<div class="cell header-cell">${h}</div>`;
+                days.forEach(d => {
+                    const id = `${d}-${h}`;
+                    let count = 0;
+                    Object.values(dbData).forEach(u => {
+                        if (u.times && u.times.includes(id)) count++;
+                    });
+
+                    if (count > best.count) best = { slot: id, count: count };
+
+                    const mine = selections.includes(id);
+                    let heat = "";
+                    if (count > 0) {
+                        if (totalUsers > 1 && count === totalUsers) heat = "v-max";
+                        else if (count >= 3) heat = "v3";
+                        else if (count === 2) heat = "v2";
+                        else heat = "v1";
+                    }
+
+                    grid.innerHTML += `
+                    <div class="cell ${heat} ${mine ? 'selected' : ''}" onclick="toggle('${id}')">
+                        ${count > 0 ? count + ' səs' : ''}
+                    </div>`;
+                });
+            });
+
+            const suggest = document.getElementById('best-time');
+            if (best.count > 0) {
+                suggest.innerText = `🔥 Ən yaxşı vaxt: ${best.slot.replace('-', ' ')} (${best.count} nəfər boşdur)`;
+            } else {
+                suggest.innerText = "Hələ ki, ortaq vaxt yoxdur. Öz boş vaxtlarını seç!";
+            }
+        }
+
+        function toggle(id) {
+            if (selections.includes(id)) selections = selections.filter(x => x !== id);
+            else selections.push(id);
+            render();
+        }
+
+        function pushToFirebase() {
+            db.ref('users/' + user).set({ times: selections })
+                .then(() => alert("Sənin vaxtların bazaya yazıldı! Digərlərini gözlə."));
+        }
+
+        function loadRealtime() {
+            db.ref('users').on('value', (snap) => {
+                dbData = snap.val() || {};
+                if (dbData[user] && selections.length === 0) {
+                    selections = dbData[user].times || [];
+                }
+                updateBadges();
+                render();
+            });
+        }
+
+        function updateBadges() {
+            const box = document.getElementById('user-badges');
+            box.innerHTML = "";
+            Object.keys(dbData).forEach(u => {
+                box.innerHTML += `<span class="badge">✅ ${u}</span>`;
+            });
+        }
+    </script>
+</body>
+
+</html>
