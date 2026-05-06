@@ -55,7 +55,6 @@
             margin-top: 20px;
         }
 
-        /* Login */
         #login-screen {
             text-align: center;
             padding: 40px 0;
@@ -89,7 +88,6 @@
             box-shadow: 0 0 15px var(--primary-glow);
         }
 
-        /* App Header */
         .header {
             display: flex;
             justify-content: space-between;
@@ -108,11 +106,9 @@
             font-weight: 500;
         }
 
-        /* Grid */
         .scheduler {
             display: grid;
             grid-template-columns: 70px repeat(6, 1fr);
-            /* 6 gün + saat sütunu */
             gap: 8px;
             margin: 20px 0;
         }
@@ -131,6 +127,51 @@
             border: 1px solid rgba(255, 255, 255, 0.04);
             color: var(--text-dim);
             text-transform: uppercase;
+            position: relative;
+        }
+
+        /* TƏKMİLLƏŞDİRİLMİŞ TOOLTIP */
+        .cell:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: pre;
+            /* Yeni sətirləri tanıması üçün */
+            z-index: 100;
+            width: auto;
+            min-width: 100px;
+            text-align: left;
+            line-height: 1.6;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+
+        /* Tooltip-in altındakı kiçik üçbucaq oxu */
+        .cell:hover::before {
+            content: "";
+            position: absolute;
+            bottom: 108%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+            z-index: 101;
+            display: none;
+        }
+
+        .cell:hover[data-tooltip]:not([data-tooltip=""])::after,
+        .cell:hover[data-tooltip]:not([data-tooltip=""])::before {
+            display: block;
         }
 
         .header-cell {
@@ -141,7 +182,6 @@
             cursor: default;
         }
 
-        /* Heatmap levels */
         .v1 {
             background: rgba(99, 102, 241, 0.15);
             color: #818cf8;
@@ -170,7 +210,6 @@
             transform: scale(0.98);
         }
 
-        /* Controls */
         .btn {
             padding: 14px 28px;
             border-radius: 14px;
@@ -188,7 +227,6 @@
         }
 
         .btn-primary:hover {
-            background: var(--primary-dark);
             transform: translateY(-2px);
         }
 
@@ -230,17 +268,11 @@
             .cell {
                 height: 35px;
                 font-size: 7px;
-                border-radius: 4px;
             }
 
             .container {
                 padding: 15px;
                 border-radius: 0;
-                margin-top: 0;
-            }
-
-            .header-cell {
-                font-size: 9px;
             }
         }
     </style>
@@ -262,13 +294,9 @@
                 <div style="font-weight: 800; font-size: 18px; color: var(--primary)">CODEBYTE</div>
                 <div id="user-display" class="user-info"></div>
             </div>
-
             <div id="best-time" class="suggestion-bar">Hesablanır...</div>
-
             <div class="scheduler" id="grid"></div>
-
             <button class="btn btn-primary" onclick="pushToFirebase()">Seçdiyim Vaxtları Təsdiqlə</button>
-
             <div class="participants">
                 <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 10px;">Səs verən komanda üzvləri:</p>
                 <div id="user-badges"></div>
@@ -277,13 +305,11 @@
     </div>
 
     <script>
-        // ---------------------------------------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyCDjL5wc1DMgTbYAp4370hIoTy6IWyWUqk",
             databaseURL: "https://team-time-6e775-default-rtdb.firebaseio.com/",
             projectId: "team-time-6e775",
         };
-        // ---------------------------------------------------------
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -299,18 +325,15 @@
             const input = document.getElementById('username');
             if (!input.value.trim()) return alert("Ad mütləqdir!");
             user = input.value.trim();
-
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'block';
             document.getElementById('user-display').innerText = "👤 " + user;
-
             loadRealtime();
         }
 
         function render() {
             const grid = document.getElementById('grid');
-            grid.innerHTML = '<div></div>'; 
-
+            grid.innerHTML = '<div></div>';
             days.forEach(d => grid.innerHTML += `<div class="cell header-cell">${d}</div>`);
 
             const totalUsers = Object.keys(dbData).length;
@@ -321,8 +344,13 @@
                 days.forEach(d => {
                     const id = `${d}-${h}`;
                     let count = 0;
-                    Object.values(dbData).forEach(u => {
-                        if (u.times && u.times.includes(id)) count++;
+                    let voters = [];
+
+                    Object.keys(dbData).forEach(u => {
+                        if (dbData[u].times && dbData[u].times.includes(id)) {
+                            count++;
+                            voters.push(u);
+                        }
                     });
 
                     if (count > best.count) best = { slot: id, count: count };
@@ -336,8 +364,16 @@
                         else heat = "v1";
                     }
 
+                    // SİYAHI FORMATINDA TOOLTIP: Hər ad yeni sətirdə ( \n )
+                    // Hər adın qabağına "•" simvolu əlavə edirik
+                    const tooltipText = voters.length > 0
+                        ? voters.map(name => `• ${name}`).join('\n')
+                        : "";
+
                     grid.innerHTML += `
-                    <div class="cell ${heat} ${mine ? 'selected' : ''}" onclick="toggle('${id}')">
+                    <div class="cell ${heat} ${mine ? 'selected' : ''}" 
+                         onclick="toggle('${id}')" 
+                         data-tooltip="${tooltipText}">
                         ${count > 0 ? count + ' səs' : ''}
                     </div>`;
                 });
@@ -359,7 +395,7 @@
 
         function pushToFirebase() {
             db.ref('users/' + user).set({ times: selections })
-                .then(() => alert("Sənin vaxtların bazaya yazıldı! Digərlərini gözlə."));
+                .then(() => alert("Vaxtların təsdiqləndi!"));
         }
 
         function loadRealtime() {
